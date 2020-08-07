@@ -1,0 +1,31 @@
+on: [push, pull_request]
+
+name: build
+
+jobs:
+  check:
+    name: Rust project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            components: rustfmt, clippy
+
+      - name: Check
+        run: cargo check --verbose --all
+      - name: Build
+        run: cargo build --verbose
+      - name: Clippy
+        run: cargo clippy --verbose --all --all-targets --all-features -- -D warnings -D clippy::clone_on_ref_ptr -D clippy::enum_glob_use
+      - name: Fmt
+        run: cargo fmt --verbose --all -- --check
+      - name: Docker start muta-chain
+        run: docker run -d --name muta-chain --rm -p 8000:8000 mutadev/muta 
+      - name: Test
+        run: cargo test
+      - name: Docker remove muta-chain
+        run: docker rm -f muta-chain
